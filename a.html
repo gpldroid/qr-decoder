@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>QR Tools | أدوات QR السريعة</title>
+  <meta name="description" content="منصة أدوات QR سريعة لفك تشفير وإنشاء رموز QR وWi-Fi مباشرة من المتصفح." />
+  <!-- External libs -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.10/minified/html5-qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --card: #fff;
+      --muted: #6b7280;
+      --accent: #0b84ff;
+      --nav: #111;
+      --danger: #e53e3e;
+    }
+    html,body{height:100%;margin:0;font-family:system-ui, Tahoma, Arial;background:var(--bg);color:#111}
+    .navbar{
+      background:var(--nav);
+      color:#fff;
+      padding:10px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+    .nav-left { font-weight:700 }
+    .nav-right button{ margin:0 4px;padding:6px 10px;border-radius:6px;border:0;background:#222;color:#fff;cursor:pointer }
+    .container{max-width:760px;margin:18px auto;padding:16px}
+    .card{background:var(--card);padding:16px;border-radius:8px;box-shadow:0 6px 20px rgba(2,6,23,0.06);margin-bottom:12px}
+    h1,h2{margin:0 0 8px 0}
+    p{color:var(--muted);margin:0 0 12px 0}
+    .sections{display:block}
+    .section{display:none}
+    .section.active{display:block}
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    input, select, button{padding:8px;border-radius:6px;border:1px solid #e3e7ee}
+    button.primary{background:var(--accent);color:#fff;border:0}
+    #reader{width:100%;max-width:520px;height:auto;background:#000;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff}
+    pre{background:#f7f9fc;padding:10px;border-radius:6px;white-space:pre-wrap}
+    #qrcode{margin-top:10px}
+    .controls{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+    .muted{color:var(--muted)}
+    .small{font-size:13px}
+    .footer{text-align:center;padding:12px;font-size:13px;color:var(--muted)}
+    .badge{background:#eef6ff;border-radius:6px;padding:6px 8px;color:#0366d6;font-weight:600}
+    @media (max-width:600px){ .row{flex-direction:column} .nav-right button{padding:6px 8px} }
+  </style>
+</head>
+<body>
+  <nav class="navbar" aria-label="Main navigation">
+    <div class="nav-left">QR Tools</div>
+    <div class="nav-right" role="navigation" aria-label="Sections">
+      <button id="btnHome" type="button" data-section="home">الرئيسية</button>
+      <button id="btnDecoder" type="button" data-section="decoder">QR Decoder</button>
+      <button id="btnGenerator" type="button" data-section="generator">QR Generator</button>
+      <button id="btnLang" type="button" aria-pressed="true">AR / EN</button>
+    </div>
+  </nav>
+
+  <main class="container" id="main">
+    <!-- HOME -->
+    <section id="home" class="card section active" aria-labelledby="homeTitle">
+      <h1 id="homeTitle">أدوات QR السريعة</h1>
+      <p id="homeDesc">منصة خفيفة لفك تشفير وإنشاء رموز QR بدون رفع أي بيانات — كل شيء يعمل على جهازك.</p>
+      <div class="row">
+        <div class="badge" id="badgeOffline">يعمل 100% على جهازك</div>
+      </div>
+    </section>
+
+    <!-- DECODER -->
+    <section id="decoder" class="card section" aria-labelledby="decoderTitle">
+      <h2 id="decoderTitle">QR Decoder</h2>
+      <p class="muted small" id="decoderHint">اضغط على زر "تشغيل الكاميرا" لبدء المسح بالكاميرا أو حمّل صورة.</p>
+
+      <div id="reader" aria-live="polite">--</div>
+      <div class="controls">
+        <button id="startCam" class="primary" type="button">تشغيل الكاميرا</button>
+        <button id="stopCam" type="button" disabled>إيقاف الكاميرا</button>
+        <label for="qr-file" style="display:inline-block">
+          <input id="qr-file" type="file" accept="image/*" style="display:none">
+          <button id="btnUpload" type="button">تحميل صورة</button>
+        </label>
+        <button id="clearDecode" type="button">مسح النتيجة</button>
+      </div>
+
+      <h3 style="margin-top:12px">النتيجة / Result</h3>
+      <pre id="decodeResult">—</pre>
+    </section>
+
+    <!-- GENERATOR -->
+    <section id="generator" class="card section" aria-labelledby="generatorTitle">
+      <h2 id="generatorTitle">QR Generator</h2>
+
+      <div class="row" style="align-items:center">
+        <label for="qrType">النوع / Type:</label>
+        <select id="qrType" aria-label="QR type">
+          <option value="text">نص / Text</option>
+          <option value="url">رابط / URL</option>
+          <option value="wifi">Wi‑Fi</option>
+        </select>
+      </div>
+
+      <div style="margin-top:8px" id="textBox">
+        <input id="qrInput" placeholder="أدخل النص أو الرابط" style="width:100%" aria-label="QR input">
+      </div>
+
+      <div id="wifiBox" style="display:none;margin-top:8px">
+        <input id="ssid" placeholder="SSID" style="width:48%" aria-label="WiFi SSID">
+        <input id="pass" placeholder="Password" style="width:48%" aria-label="WiFi password">
+      </div>
+
+      <div class="controls">
+        <button id="btnGenerate" class="primary" type="button">إنشاء QR</button>
+        <button id="btnDownload" type="button" disabled>تحميل PNG</button>
+        <button id="btnCopy" type="button" disabled>نسخ النص</button>
+        <button id="btnReset" type="button">مسح الحقول</button>
+      </div>
+
+      <div id="qrcode" aria-hidden="false"></div>
+      <p class="muted small" id="generatorHint">ملاحظة: بيانات Wi‑Fi تُنشأ محلياً في جهازك فقط.</p>
+    </section>
+
+    <footer class="footer card">
+      <small id="footerText">© QR Tools — يعمل 100% على جهازك</small>
+    </footer>
+  </main>
+
+  <script>
+    (function(){
+      // --- Translations ---
+      const TEXT = {
+        ar: {
+          home: "الرئيسية",
+          decoder: "QR Decoder",
+          generator: "QR Generator",
+          startCamera: "تشغيل الكاميرا",
+          stopCamera: "إيقاف الكاميرا",
+          uploadImage: "تحميل صورة",
+          clearResult: "مسح النتيجة",
+          resultPlaceholder: "—",
+          genCreate: "إنشاء QR",
+          genDownload: "تحميل PNG",
+          genCopy: "نسخ النص",
+          genReset: "مسح الحقول",
+          inputPlaceholder: "أدخل النص أو الرابط",
+          ssidPlaceholder: "SSID",
+          passPlaceholder: "Password",
+          decoderHint: 'اضغط على زر "تشغيل الكاميرا" لبدء المسح بالكاميرا أو حمّل صورة.',
+          genHint: "ملاحظة: بيانات Wi‑Fi تُنشأ محلياً في جهازك فقط.",
+          footer: "© QR Tools — يعمل 100% على جهازك",
+          parseError: "❌ لم يتم التعرف على الرمز",
+          scanSuccess: "تم المسح",
+          wifiLabels: {S: "SSID", T: "Security", P: "Password"},
+        },
+        en: {
+          home: "Home",
+          decoder: "QR Decoder",
+          generator: "QR Generator",
+          startCamera: "Start Camera",
+          stopCamera: "Stop Camera",
+          uploadImage: "Upload Image",
+          clearResult: "Clear Result",
+          resultPlaceholder: "—",
+          genCreate: "Generate QR",
+          genDownload: "Download PNG",
+          genCopy: "Copy Text",
+          genReset: "Reset Fields",
+          inputPlaceholder: "Enter text or URL",
+          ssidPlaceholder: "SSID",
+          passPlaceholder: "Password",
+          decoderHint: 'Press "Start Camera" to scan with camera or upload an image.',
+          genHint: "Note: Wi‑Fi data is generated locally on your device only.",
+          footer: "© QR Tools — Works 100% on your device",
+          parseError: "❌ QR not recognized",
+          scanSuccess: "Scan successful",
+          wifiLabels: {S: "SSID", T: "Security", P: "Password"},
+        }
+      };
+
+      // --- State ---
+      let lang = 'ar';
+      let html5QrScanner = null;
+      let scannerRunning = false;
+      const readerElementId = 'reader';
+
+      // --- Elements ---
+      const sections = Array.from(document.querySelectorAll('.section'));
+      const btnHome = document.getElementById('btnHome');
+      const btnDecoder = document.getElementById('btnDecoder');
+      const btnGenerator = document.getElementById('btnGenerator');
+      const btnLang = document.getElementById('btnLang');
+
+      const startCamBtn = document.getElementById('startCam');
+      const stopCamBtn = document.getElementById('stopCam');
+      const fileInput = document.getElementById('qr-file');
+      const uploadBtn = document.getElementById('btnUpload');
+      const clearDecodeBtn = document.getElementById('clearDecode');
+      const readerDiv = document.getElementById(readerElementId);
+      const decodeResult = document.getElementById('decodeResult');
+
+      const qrType = document.getElementById('qrType');
+      const wifiBox = document.getElementById('wifiBox');
+      const qrInput = document.getElementById('qrInput');
+      const ssidInput = document.getElementById('ssid');
+      const passInput = document.getElementById('pass');
+      const btnGenerate = document.getElementById('btnGenerate');
+      const btnDownload = document.getElementById('btnDownload');
+      const btnCopy = document.getElementById('btnCopy');
+      const btnReset = document.getElementById('btnReset');
+      const qrcodeDiv = document.getElementById('qrcode');
+
+      // --- Helpers ---
+      function t(k) { return TEXT[lang][k]; }
+      function setText(node, value) { if(node) node.textContent = value; }
+      function escapeWifiVal(v){
+        if(v==null) return '';
+        return String(v)
+          .replace(/\\/g, '\\\\')
+          .replace(/;/g, '\\;')
+          .replace(/,/g, '\\,')
+          .replace(/:/g, '\\:');
+      }
+      function unescapeWifiVal(v){
+        if(!v) return '';
+        // Replace escaped sequences: \\ -> \, \; -> ;, \: -> :, \, -> ,
+        return v.replace(/\\\\/g, '\\')
+                .replace(/\\;/g, ';')
+                .replace(/\\:/g, ':')
+                .replace(/\\,/g, ',');
+      }
+
+      function parseWifi(text){
+        if(!text || typeof text !== 'string') return text;
+        if(!text.startsWith('WIFI:')) return text;
+        // Remove leading WIFI:
+        let inner = text.slice(5);
+        // Some implementations end with ;;, trim trailing semicolons
+        inner = inner.replace(/;{1,2}$/, '');
+        const parts = inner.split(';');
+        const data = {};
+        parts.forEach(p => {
+          if(!p) return;
+          const idx = p.indexOf(':');
+          if(idx === -1) return;
+          const k = p.slice(0, idx);
+          const v = p.slice(idx+1);
+          data[k] = unescapeWifiVal(v);
+        });
+        const labels = TEXT[lang].wifiLabels;
+        // Build a friendly output
+        return `${labels.S || 'SSID'}: ${data.S || ''}\n${labels.T || 'Security'}: ${data.T || ''}\n${labels.P || 'Password'}: ${data.P || ''}`;
+      }
+
+      // --- Scanner control ---
+      function createScannerIfNeeded(){
+        if(html5QrScanner) return html5QrScanner;
+        html5QrScanner = new Html5Qrcode(readerElementId, /* verbose= */ false);
+        return html5QrScanner;
+      }
+
+      async function startScanner(){
+        if(scannerRunning) return;
+        const scanner = createScannerIfNeeded();
+        readerDiv.textContent = ''; // clear placeholder
+        // camera config: prefer environment (rear) camera
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        try {
+          await scanner.start(
+            { facingMode: "environment" },
+            config,
+            qrText => {
+              // On success
+              decodeResult.textContent = parseWifi(qrText);
+              stopScanner(); // stop after successful scan
+            },
+            error => {
+              // per-frame error (ignored) -- could show temporary status
+              // console.debug('scan error', error);
+            }
+          );
+          scannerRunning = true;
+          startCamBtn.disabled = true;
+          stopCamBtn.disabled = false;
+        } catch (err) {
+          scannerRunning = false;
+          startCamBtn.disabled = false;
+          stopCamBtn.disabled = true;
+          readerDiv.textContent = TEXT[lang].parseError + '\n' + (err && err.message ? err.message : '');
+        }
+      }
+
+      async function stopScanner(){
+        if(!html5QrScanner || !scannerRunning) {
+          startCamBtn.disabled = false;
+          stopCamBtn.disabled = true;
+          return;
+        }
+        try {
+          await html5QrScanner.stop();
+        } catch(e){
+          // ignore stop errors
+        }
+        scannerRunning = false;
+        startCamBtn.disabled = false;
+        stopCamBtn.disabled = true;
+        // Reset reader placeholder
+        readerDiv.textContent = '—';
+      }
+
+      // --- UI / Navigation ---
+      function showSection(id){
+        sections.forEach(s => s.classList.remove('active'));
+        const selected = document.getElementById(id);
+        if(selected) selected.classList.add('active');
+
+        // Start/stop scanner based on visible section
+        if(id === 'decoder') {
+          // do not auto-start if scanner previously failed - user can click Start
+          // But we choose to automatically attempt start when entering decoder:
+          // startScanner();
+        } else {
+          // leave decoder -> stop camera if active
+          stopScanner();
+        }
+      }
+
+      // Wire nav buttons
+      [btnHome, btnDecoder, btnGenerator].forEach(b => {
+        b.addEventListener('click', () => {
+          const sec = b.getAttribute('data-section');
+          showSection(sec);
+          // If entering decoder, don't auto-start camera — require explicit Start for privacy
+          if(sec === 'decoder'){
+            // set hint + keep scanner stopped; user taps "Start Camera" to allow camera
+            readerDiv.textContent = '—';
+            decodeResult.textContent = TEXT[lang].resultPlaceholder;
+          }
+        });
+      });
+
+      // --- Language toggle ---
+      function applyLanguage(){
+        document.documentElement.lang = lang;
+        document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
+
+        // Nav
+        btnHome.textContent = TEXT[lang].home;
+        btnDecoder.textContent = TEXT[lang].decoder;
+        btnGenerator.textContent = TEXT[lang].generator;
+
+        // Decoder
+        startCamBtn.textContent = TEXT[lang].startCamera;
+        stopCamBtn.textContent = TEXT[lang].stopCamera;
+        uploadBtn.textContent = TEXT[lang].uploadImage;
+        clearDecodeBtn.textContent = TEXT[lang].clearResult;
+        document.getElementById('decoderHint').textContent = TEXT[lang].decoderHint;
+        decodeResult.textContent = TEXT[lang].resultPlaceholder;
+
+        // Generator
+        document.getElementById('generatorHint').textContent = TEXT[lang].genHint;
+        btnGenerate.textContent = TEXT[lang].genCreate;
+        btnDownload.textContent = TEXT[lang].genDownload;
+        btnCopy.textContent = TEXT[lang].genCopy;
+        btnReset.textContent = TEXT[lang].genReset;
+        qrInput.placeholder = TEXT[lang].inputPlaceholder;
+        ssidInput.placeholder = TEXT[lang].ssidPlaceholder;
+        passInput.placeholder = TEXT[lang].passPlaceholder;
+
+        // Home & footer
+        document.getElementById('homeTitle').textContent = TEXT[lang].home === 'Home' ? 'QR Tools' : 'أدوات QR السريعة';
+        document.getElementById('homeDesc').textContent = lang === 'ar' ? 'منصة خفيفة لفك تشفير وإنشاء رموز QR بدون رفع أي بيانات — كل شيء يعمل على جهازك.' : 'Lightweight QR tools to decode and generate codes locally in your browser.';
+        document.getElementById('footerText').textContent = TEXT[lang].footer;
+
+        // Options (text / url / wifi) labels remain same (mixed AR/EN)
+        // Update aria-pressed
+        btnLang.setAttribute('aria-pressed', lang === 'ar' ? 'true' : 'false');
+      }
+
+      btnLang.addEventListener('click', () => {
+        lang = (lang === 'ar') ? 'en' : 'ar';
+        applyLanguage();
+      });
+
+      // --- Decoder controls ---
+      startCamBtn.addEventListener('click', async () => {
+        startCamBtn.disabled = true;
+        readerDiv.textContent = '⌛ ...';
+        await startScanner();
+      });
+      stopCamBtn.addEventListener('click', async () => {
+        await stopScanner();
+      });
+
+      fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if(!file) return;
+        // Ensure we have scanner instance
+        createScannerIfNeeded();
+        decodeResult.textContent = '⌛ ...';
+        try {
+          const text = await html5QrScanner.scanFile(file, true);
+          decodeResult.textContent = parseWifi(text);
+        } catch (err) {
+          decodeResult.textContent = TEXT[lang].parseError;
+        }
+        // reset file input for same-file uploads later
+        fileInput.value = '';
+      });
+
+      // Make upload button trigger file input
+      uploadBtn.addEventListener('click', () => fileInput.click());
+
+      clearDecodeBtn.addEventListener('click', () => {
+        decodeResult.textContent = TEXT[lang].resultPlaceholder;
+      });
+
+      // --- Generator logic ---
+      function updateGeneratorUI(){
+        const isWifi = qrType.value === 'wifi';
+        wifiBox.style.display = isWifi ? 'block' : 'none';
+      }
+      qrType.addEventListener('change', updateGeneratorUI);
+
+      let lastGeneratedText = '';
+
+      function clearQrcode(){
+        qrcodeDiv.innerHTML = '';
+        lastGeneratedText = '';
+        btnDownload.disabled = true;
+        btnCopy.disabled = true;
+      }
+
+      btnReset.addEventListener('click', () => {
+        qrInput.value = '';
+        ssidInput.value = '';
+        passInput.value = '';
+        clearQrcode();
+      });
+
+      btnGenerate.addEventListener('click', () => {
+        clearQrcode();
+        let text = qrInput.value || '';
+        const type = qrType.value;
+        if(type === 'url'){
+          // basic validation: ensure starts with http/https
+          if(!/^(https?:\/\/)/i.test(text)) {
+            // If user didn't add scheme, add https:// by default
+            text = 'https://' + text;
+          }
+        } else if(type === 'wifi'){
+          const ssid = ssidInput.value || '';
+          const pass = passInput.value || '';
+          // Choose WPA as default if password present, else nopass
+          const enc = pass ? 'WPA' : 'nopass';
+          // Escape values
+          const s = escapeWifiVal(ssid);
+          const p = escapeWifiVal(pass);
+          text = `WIFI:T:${enc};S:${s};P:${p};;`;
+        }
+        if(!text){
+          alert(lang === 'ar' ? 'الرجاء إدخال نص أو بيانات لإنشاء QR' : 'Please enter text/data to generate QR');
+          return;
+        }
+        lastGeneratedText = text;
+        // Generate QR using qrcodejs
+        try {
+          new QRCode(qrcodeDiv, { text: text, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
+          btnDownload.disabled = false;
+          btnCopy.disabled = false;
+        } catch(e){
+          alert((lang === 'ar' ? 'فشل إنشاء رمز QR: ' : 'Failed to generate QR: ') + (e && e.message ? e.message : ''));
+        }
+      });
+
+      btnCopy.addEventListener('click', async () => {
+        if(!lastGeneratedText) return;
+        try {
+          await navigator.clipboard.writeText(lastGeneratedText);
+          alert(lang === 'ar' ? 'تم نسخ النص إلى الحافظة' : 'Text copied to clipboard');
+        } catch(e){
+          alert(lang === 'ar' ? 'فشل النسخ' : 'Copy failed');
+        }
+      });
+
+      btnDownload.addEventListener('click', () => {
+        if(!lastGeneratedText) return;
+        // qrcodejs may create an <img> or a <canvas> inside qrcodeDiv.
+        const img = qrcodeDiv.querySelector('img');
+        const canvas = qrcodeDiv.querySelector('canvas');
+        let dataUrl = null;
+        if(img && img.src) dataUrl = img.src;
+        else if(canvas) dataUrl = canvas.toDataURL('image/png');
+        if(!dataUrl){
+          alert(lang === 'ar' ? 'لا توجد صورة للتحميل' : 'No image to download');
+          return;
+        }
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = 'qrcode.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      });
+
+      // --- Init ---
+      applyLanguage();
+      updateGeneratorUI();
+
+      // Keep reader placeholder stable on load
+      readerDiv.textContent = '—';
+
+      // Before unload, ensure scanner stopped to release camera
+      window.addEventListener('beforeunload', async () => {
+        if(scannerRunning) {
+          try { await stopScanner(); } catch(e) {}
+        }
+      });
+
+      // Accessibility: allow Enter key on main generate button when in inputs
+      [qrInput, ssidInput, passInput].forEach(el => {
+        el.addEventListener('keydown', (ev) => {
+          if(ev.key === 'Enter') {
+            ev.preventDefault();
+            btnGenerate.click();
+          }
+        });
+      });
+
+      // Start: show home by default
+      showSection('home');
+
+    })();
+  </script>
+</body>
+</html>
