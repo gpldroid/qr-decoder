@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>أداة فك تشفير QR Code</title>
+    <meta name="description" content="موقع مجاني لفك تشفير وقراءة رموز QR بما فيها رموز Wi-Fi">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- مكتبة QR -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <link rel="stylesheet" href="style.css">
+<style>
+body {
+    font-family: Tahoma, Arial;
+    background: #f4f6f8;
+    text-align: center;
+    margin: 0;
+    padding: 20px;
+}
+
+h1 {
+    color: #333;
+}
+
+.container {
+    max-width: 500px;
+    margin: auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+#reader {
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.result {
+    background: #f1f1f1;
+    padding: 10px;
+    border-radius: 6px;
+    margin-top: 10px;
+}
+
+pre {
+    text-align: left;
+    direction: ltr;
+    white-space: pre-wrap;
+}
+
+  
+</style>
+</head>
+<body>
+
+<h1>🔍 أداة فك تشفير QR Code</h1>
+
+<div class="container">
+
+    <div id="reader"></div>
+
+    <input type="file" id="qr-file" accept="image/*">
+
+    <div class="result">
+        <h3>النتيجة:</h3>
+        <pre id="output">—</pre>
+    </div>
+
+</div>
+
+<script src="script.js"></script>
+<script>
+  const output = document.getElementById("output");
+
+/* قراءة من الكاميرا */
+const qr = new Html5Qrcode("reader");
+
+qr.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    (text) => {
+        displayResult(text);
+        qr.stop();
+    }
+);
+
+/* قراءة من صورة */
+document.getElementById("qr-file").addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const qrFile = new Html5Qrcode("reader");
+    qrFile.scanFile(file, true)
+        .then(text => displayResult(text))
+        .catch(err => output.textContent = "لم يتم التعرف على الرمز");
+});
+
+/* تحليل QR */
+function displayResult(text) {
+    if (text.startsWith("WIFI:")) {
+        const data = {};
+        text.replace("WIFI:", "")
+            .split(";")
+            .forEach(item => {
+                const [k, v] = item.split(":");
+                data[k] = v;
+            });
+
+        output.textContent =
+`📶 Wi-Fi QR Code
+اسم الشبكة: ${data.S}
+الحماية: ${data.T}
+كلمة المرور: ${data.P}`;
+    } else {
+        output.textContent = text;
+    }
+}
+</script>
+</body>
+</html>
