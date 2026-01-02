@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Tools - Encoder & Decoder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            direction: ltr;
+        }
+
+        body.rtl {
+            direction: rtl;
+            text-align: right;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .language-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        body.rtl .language-toggle {
+            right: auto;
+            left: 20px;
+        }
+
+        .lang-btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            background: white;
+            color: #667eea;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .lang-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .lang-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+        }
+
+        .section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s;
+        }
+
+        .section:hover {
+            border-color: #667eea;
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.1);
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon {
+            font-size: 1.3em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="url"],
+        input[type="file"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="url"]:focus,
+        input[type="file"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #dee2e6;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .output-area {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 2px dashed #ddd;
+            display: none;
+        }
+
+        .output-area.active {
+            display: block;
+        }
+
+        .qr-code-display {
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .qr-code-display img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .decoded-text {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            word-break: break-all;
+        }
+
+        .decoded-text.wifi {
+            background: #d1ecf1;
+            border-left-color: #17a2b8;
+        }
+
+        .decoded-text.url {
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        #camera {
+            width: 100%;
+            display: block;
+        }
+
+        .camera-controls {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            width: calc(100% - 20px);
+        }
+
+        .camera-controls button {
+            flex: 1;
+        }
+
+        .info-box {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 12px;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-size: 0.9em;
+            color: #0c5460;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-btn:hover {
+            color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .success-message {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 12px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .wifi-details {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .wifi-details p {
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .wifi-details label {
+            display: inline;
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .wifi-details span {
+            margin-left: 10px;
+            word-break: break-all;
+        }
+
+        body.rtl .wifi-details p {
+            flex-direction: row-reverse;
+        }
+
+        body.rtl .wifi-details span {
+            margin-left: 0;
+            margin-right: 10px;
+        }
+
+        .copy-btn-small {
+            padding: 5px 10px;
+            font-size: 0.85em;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .copy-btn-small:hover {
+            background: #764ba2;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #ddd;
+        }
+
+        .qr-size-controls {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .qr-size-controls input[type="range"] {
+            flex: 1;
+        }
+
+        .qr-size-controls span {
+            min-width: 50px;
+            color: #667eea;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="language-toggle">
+        <button class="lang-btn active" data-lang="en">English</button>
+        <button class="lang-btn" data-lang="ar">العربية</button>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🔳 QR Code Tools</h1>
+            <p data-i18n="header-subtitle">Encode & Decode QR Codes with Advanced Features</p>
+        </div>
+
+        <div class="content">
+            <!-- QR Generator Section -->
+            <div class="section">
+                <h2><span class="icon">🔲</span> <span data-i18n="generator-title">QR Generator</span></h2>
+                
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="text-input" data-i18n="tab-text">Text/URL</button>
+                    <button class="tab-btn" data-tab="wifi-input" data-i18n="tab-wifi">Wi-Fi</button>
+                    <button class="tab-btn" data-tab="contact-input" data-i18n="tab-contact">Contact</button>
+                </div>
+
+                <!-- Text/URL Tab -->
+                <div id="text-input" class="tab-content active">
+                    <div class="form-group">
+                        <label data-i18n="label-input">Enter Text or URL:</label>
+                        <textarea id="qr-text-input" placeholder="https://example.com or any text..." data-i18n-placeholder="placeholder-text"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label data-i18n="label-size">QR Code Size:</label>
+                        <div class="qr-size-controls">
+                            <input type="range" id="qr-size" min="100" max="400" value="200" step="10">
+                            <span id="size-display">200px</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label data-i18n="label-error-correction">Error Correction:</label>
+                        <select id="error-correction">
+                            <option value="L">L (Low)</option>
+                            <option value="M" selected>M (Medium)</option>
+                            <option value="Q">Q (Quartile)</option>
+                            <option value="H">H (High)</option>
+                        </select>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn-primary" id="generate-qr" data-i18n="btn-generate">Generate QR</button>
+                        <button class="btn-secondary" id="clear-text-input" data-i18n="btn-clear">Clear</button>
+                    </div>
+                </div>
+
+                <!-- Wi-Fi Tab -->
+                <div id="wifi-input" class="tab-content">
+                    <div class="form-group">
+                        <label data-i18n="label-ssid">Network Name (SSID):</label>
+                        <input type="text" id="wifi-ssid" placeholder="MyNetwork" data-i18n-placeholder="placeholder-ssid">
+                    </div>
+
+                    <div class="form-group">
+                        <label data-i18n="label-password">Password:</label>
+                        <input type="text" id="wifi-password" placeholder="••••••••" data-i18n-placeholder="placeholder-password">
+                    </div>
+
+                    <div class="form-group">
+                        <label data-i18n="label-security">Security Type:</label>
+                        <select id="wifi-security">
+                            <option value="WPA">WPA/WPA2</option>
+                            <option value="WEP">WEP</option>
+                            <option value="nopass">Open (No Password)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="wifi-hidden"> <span data-i18n="label-hidden">Hidden Network</span>
+                        </label>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn-primary" id="generate-wifi-qr" data-i18n="btn-generate">Generate QR</button>
+                        <button class="btn-secondary" id="clear-wifi-input" data-i18n="btn-clear">Clear</button>
+                    </div>
+                </div>
+
+                <!-- Contact Tab -->
+                <div id="contact-input" class="tab-content">
+                    <div class="form-group">
+                        <label data-i18n="label-name">Name:</label>
+                        <input type="text" id="contact-name" placeholder="John Doe" data-i18n-placeholder="placeholder-name">
+                    </div>
+
+                    <div class="form-group">
+                        <label data-i18n="label-phone">Phone:</label>
+                        <input type="text" id="contact-phone" placeholder="+1-555-0000" data-i18n-placeholder="placeholder-phone">
+                    </div>
+
+                    <div class="form-group">
+                        <label data-i18n="label-email">Email:</label>
+                        <input type="text" id="contact-email" placeholder="john@example.com" data-i18n-placeholder="placeholder-email">
+                    </div>
+
+                    <div class="form-group">
+                        <label data-i18n="label-website">Website:</label>
+                        <input type="url" id="contact-website" placeholder="https://example.com" data-i18n-placeholder="placeholder-website">
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn-primary" id="generate-contact-qr" data-i18n="btn-generate">Generate QR</button>
+                        <button class="btn-secondary" id="clear-contact-input" data-i18n="btn-clear">Clear</button>
+                    </div>
+                </div>
+
+                <!-- Output Area -->
+                <div id="generator-output" class="output-area">
+                    <div class="qr-code-display">
+                        <img id="generated-qr" src="" alt="Generated QR Code">
+                    </div>
+                    <div class="button-group">
+                        <button class="btn-success" id="download-qr" data-i18n="btn-download">Download</button>
+                        <button class="btn-success" id="copy-qr" data-i18n="btn-copy">Copy to Clipboard</button>
+                    </div>
+                    <div class="success-message" id="generator-success" data-i18n="msg-success">QR Code generated successfully!</div>
+                </div>
+            </div>
+
+            <!-- QR Decoder Section -->
+            <div class="section">
+                <h2><span class="icon">📱</span> <span data-i18n="decoder-title">QR Decoder</span></h2>
+
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="camera-tab" data-i18n="tab-camera">Camera</button>
+                    <button class="tab-btn" data-tab="upload-tab" data-i18n="tab-upload">Upload</button>
+                </div>
+
+                <!-- Camera Tab -->
+                <div id="camera-tab" class="tab-content active">
+                    <div class="info-box" data-i18n="info-camera">
+                        Allow camera access and point it at a QR code to scan.
+                    </div>
+
+                    <video id="camera" autoplay playsinline></video>
+                    <div class="camera-controls">
+                        <button class="btn-primary" id="start-camera" data-i18n="btn-start-camera">Start Camera</button>
+                        <button class="btn-danger" id="stop-camera" style="display: none;" data-i18n="btn-stop-camera">Stop Camera</button>
+                    </div>
+                </div>
+
+                <!-- Upload Tab -->
+                <div id="upload-tab" class="tab-content">
+                    <div class="form-group">
+                        <label data-i18n="label-upload">Upload QR Code Image:</label>
+                        <input type="file" id="qr-file-input" accept="image/*">
+                    </div>
+                    <button class="btn-primary" id="decode-file" data-i18n="btn-decode">Decode</button>
+                </div>
+
+                <!-- Decoder Output Area -->
+                <div id="decoder-output" class="output-area">
+                    <div id="decoded-content"></div>
+                    <div class="error-message" id="decoder-error"></div>
+                    <div class="success-message" id="decoder-success"></div>
+                    <div class="button-group">
+                        <button class="btn-success" id="copy-decoded" data-i18n="btn-copy">Copy Text</button>
+                        <button class="btn-secondary" id="clear-decoder" data-i18n="btn-clear">Clear</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p data-i18n="footer-text">QR Code Tools © 2026 | Made with ❤️ for developers</p>
+        </div>
+    </div>
+
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+
+    <script>
+        // ==================== Internationalization ====================
+        const translations = {
+            en: {
+                'header-subtitle': 'Encode & Decode QR Codes with Advanced Features',
+                'generator-title': 'QR Generator',
+                'decoder-title': 'QR Decoder',
+                'tab-text': 'Text/URL',
+                'tab-wifi': 'Wi-Fi',
+                'tab-contact': 'Contact',
+                'tab-camera': 'Camera',
+                'tab-upload': 'Upload',
+                'label-input': 'Enter Text or URL:',
+                'label-size': 'QR Code Size:',
+                'label-error-correction': 'Error Correction:',
+                'label-ssid': 'Network Name (SSID):',
+                'label-password': 'Password:',
+                'label-security': 'Security Type:',
+                'label-hidden': 'Hidden Network',
+                'label-name': 'Name:',
+                'label-phone': 'Phone:',
+                'label-email': 'Email:',
+                'label-website': 'Website:',
+                'label-upload': 'Upload QR Code Image:',
+                'btn-generate': 'Generate QR',
+                'btn-clear': 'Clear',
+                'btn-download': 'Download',
+                'btn-copy': 'Copy to Clipboard',
+                'btn-decode': 'Decode',
+                'btn-start-camera': 'Start Camera',
+                'btn-stop-camera': 'Stop Camera',
+                'info-camera': 'Allow camera access and point it at a QR code to scan.',
+                'msg-success': 'QR Code generated successfully!',
+                'footer-text': 'QR Code Tools © 2026 | Made with ❤️ for developers',
+                'placeholder-text': 'https://example.com or any text...',
+                'placeholder-ssid': 'MyNetwork',
+                'placeholder-password': '••••••••',
+                'placeholder-name': 'John Doe',
+                'placeholder-phone': '+1-555-0000',
+                'placeholder-email': 'john@example.com',
+                'placeholder-website': 'https://example.com',
+                'error-camera': 'Error accessing camera. Please check permissions.',
+                'error-decode': 'Failed to decode QR code. Please try another image.',
+                'success-copy': 'Copied to clipboard!',
+                'success-download': 'QR Code downloaded successfully!',
+                'wifi-ssid': 'Network Name',
+                'wifi-password': 'Password',
+                'wifi-security': 'Security Type',
+                'wifi-hidden': 'Hidden Network',
+                'contact-name': 'Name',
+                'contact-phone': 'Phone',
+                'contact-email': 'Email',
+                'contact-website': 'Website'
+            },
+            ar: {
+                'header-subtitle': 'ترميز وفك رموز أكواد QR مع ميزات متقدمة',
+                'generator-title': 'مُنشئ QR',
+                'decoder-title': 'فاك رموز QR',
+                'tab-text': 'نص/رابط',
+                'tab-wifi': 'Wi-Fi',
+                'tab-contact': 'جهة اتصال',
+                'tab-camera': 'الكاميرا',
+                'tab-upload': 'تحميل',
+                'label-input': 'أدخل نص أو رابط:',
+                'label-size': 'حجم رمز QR:',
+                'label-error-correction': 'تصحيح الأخطاء:',
+                'label-ssid': 'اسم الشبكة (SSID):',
+                'label-password': 'كلمة المرور:',
+                'label-security': 'نوع الأمان:',
+                'label-hidden': 'شبكة مخفية',
+                'label-name': 'الاسم:',
+                'label-phone': 'الهاتف:',
+                'label-email': 'البريد الإلكتروني:',
+                'label-website': 'الموقع الإلكتروني:',
+                'label-upload': 'حمل صورة رمز QR:',
+                'btn-generate': 'إنشاء QR',
+                'btn-clear': 'مسح',
+                'btn-download': 'تحميل',
+                'btn-copy': 'نسخ إلى الحافظة',
+                'btn-decode': 'فك الرموز',
+                'btn-start-camera': 'بدء الكاميرا',
+                'btn-stop-camera': 'إيقاف الكاميرا',
+                'info-camera': 'اسمح بالوصول إلى الكاميرا وأشر إليها نحو رمز QR للمسح الضوئي.',
+                'msg-success': 'تم إنشاء رمز QR بنجاح!',
+                'footer-text': 'أدوات رمز QR © 2026 | تم الإنشاء بـ ❤️ للمطورين',
+                'placeholder-text': 'https://example.com أو أي نص...',
+                'placeholder-ssid': 'شبكتي',
+                'placeholder-password': '••••••••',
+                'placeholder-name': 'أحمد محمد',
+                'placeholder-phone': '+966-555-0000',
+                'placeholder-email': 'ahmed@example.com',
+                'placeholder-website': 'https://example.com',
+                'error-camera': 'خطأ في الوصول إلى الكاميرا. يرجى التحقق من الأذونات.',
+                'error-decode': 'فشل فك رموز QR. يرجى محاولة صورة أخرى.',
+                'success-copy': 'تم النسخ إلى الحافظة!',
+                'success-download': 'تم تحميل رمز QR بنجاح!',
+                'wifi-ssid': 'اسم الشبكة',
+                'wifi-password': 'كلمة المرور',
+                'wifi-security': 'نوع الأمان',
+                'wifi-hidden': 'شبكة مخفية',
+                'contact-name': 'الاسم',
+                'contact-phone': 'الهاتف',
+                'contact-email': 'البريد الإلكتروني',
+                'contact-website': 'الموقع الإلكتروني'
+            }
+        };
+
+        let currentLanguage = 'en';
+
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            document.documentElement.lang = lang;
+            document.body.classList.toggle('rtl', lang === 'ar');
+            
+            // Update all translatable elements
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                el.textContent = translations[lang][key] || el.textContent;
+            });
+
+            // Update placeholders
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                el.placeholder = translations[lang][key] || el.placeholder;
+            });
+
+            // Update language buttons
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+            });
+        }
+
+        // ==================== Event Listeners for Language ====================
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setLanguage(btn.getAttribute('data-lang'));
+            });
+        });
+
+        // ==================== Tab Management ====================
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabName = btn.getAttribute('data-tab');
+                const parent = btn.closest('.section') || btn.closest('.tab-content')?.parentElement;
+                
+                // Hide all tabs in the same section
+                parent.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                
+                // Remove active from all buttons
+                parent.querySelectorAll('.tab-btn').forEach(b => {
+                    b.classList.remove('active');
+                });
+                
+                // Show selected tab
+                const tabContent = document.getElementById(tabName);
+                if (tabContent) {
+                    tabContent.classList.add('active');
+                    btn.classList.add('active');
+                }
+            });
+        });
+
+        // ==================== QR Size Control ====================
+        const sizeSlider = document.getElementById('qr-size');
+        const sizeDisplay = document.getElementById('size-display');
+        
+        sizeSlider.addEventListener('input', (e) => {
+            sizeDisplay.textContent = e.target.value + 'px';
+        });
+
+        // ==================== QR Generator ====================
+        function generateQRCode(text, size = 200) {
+            if (!text.trim()) {
+                showError('generator', 'Please enter text or URL');
+                return;
+            }
+
+            const outputDiv = document.getElementById('generator-output');
+            const qrImage = document.getElementById('generated-qr');
+            
+            // Clear previous QR
+            qrImage.src = '';
+            
+            try {
+                // Generate QR using QRCode.js
+                const canvas = document.createElement('canvas');
+                const qr = new QRCode({
+                    text: text,
+                    width: size,
+                    height: size,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel[document.getElementById('error-correction').value]
+                });
+                
+                // Convert to data URL
+                const qrCanvas = document.querySelector('canvas');
+                if (qrCanvas) {
+                    qrImage.src = qrCanvas.toDataURL('image/png');
+                    outputDiv.classList.add('active');
+                    showSuccess('generator', translations[currentLanguage]['msg-success']);
+                }
+            } catch (error) {
+                showError('generator', 'Error generating QR code: ' + error.message);
+            }
+        }
+
+        // Better QR generation using canvas
+        function generateQRCodeCanvas(text, size = 200) {
+            if (!text.trim()) {
+                showError('generator', 'Please enter text or URL');
+                return;
+            }
+
+            const outputDiv = document.getElementById('generator-output');
+            const qrImage = document.getElementById('generated-qr');
+            
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Use a simple approach with qrcode library
+                const qr = new QRCode({
+                    text: text,
+                    width: size,
+                    height: size,
+                    correctLevel: QRCode.CorrectLevel[document.getElementById('error-correction').value]
+                });
+                
+                // Get the canvas that QRCode creates
+                const tempContainer = document.createElement('div');
+                tempContainer.style.position = 'absolute';
+                tempContainer.style.left = '-9999px';
+                document.body.appendChild(tempContainer);
+                
+                qr.makeCode(text);
+                const qrCanvas = tempContainer.querySelector('canvas');
+                
+                if (qrCanvas) {
+                    const imageData = qrCanvas.toDataURL('image/png');
+                    qrImage.src = imageData;
+                    outputDiv.classList.add('active');
+                    showSuccess('generator', translations[currentLanguage]['msg-success']);
+                    document.body.removeChild(tempContainer);
+                }
+            } catch (error) {
+                showError('generator', 'Error generating QR code');
+            }
+        }
+
+        // Event listeners for QR generation
+        document.getElementById('generate-qr').addEventListener('click', () => {
+            const text = document.getElementById('qr-text-input').value;
+            const size = parseInt(document.getElementById('qr-size').value);
+            generateSimpleQR(text, size);
+        });
+
+        document.getElementById('generate-wifi-qr').addEventListener('click', () => {
+            const ssid = document.getElementById('wifi-ssid').value;
+            const password = document.getElementById('wifi-password').value;
+            const security = document.getElementById('wifi-security').value;
+            const hidden = document.getElementById('wifi-hidden').checked;
+            
+            if (!ssid) {
+                showError('generator', 'Please enter network name');
+                return;
+            }
+            
+            const wifiString = `WIFI:T:${security};S:${ssid};P:${password};H:${hidden ? 'true' : 'false'};;`;
+            generateSimpleQR(wifiString, 200);
+        });
+
+        document.getElementById('generate-contact-qr').addEventListener('click', () => {
+            const name = document.getElementById('contact-name').value;
+            const phone = document.getElementById('contact-phone').value;
+            const email = document.getElementById('contact-email').value;
+            const website = document.getElementById('contact-website').value;
+            
+            if (!name) {
+                showError('generator', 'Please enter at least a name');
+                return;
+            }
+            
+            // VCARD format
+            let vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:${name}\n`;
+            if (phone) vcard += `TEL:${phone}\n`;
+            if (email) vcard += `EMAIL:${email}\n`;
+            if (website) vcard += `URL:${website}\n`;
+            vcard += `END:VCARD`;
+            
+            generateSimpleQR(vcard, 200);
+        });
+
+        // Generate QR using canvas API (works without external library limitations)
+        function generateSimpleQR(text, size = 200) {
+            if (!text.trim()) {
+                showError('generator', 'Please enter data');
+                return;
+            }
+
+            const outputDiv = document.getElementById('generator-output');
+            const qrImage = document.getElementById('generated-qr');
+            
+            try {
+                // Use a data URL for generating QR - alternative approach
+                const encodedText = encodeURIComponent(text);
+                const qrDataUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodedText}`;
+                
+                qrImage.src = qrDataUrl;
+                qrImage.onload = () => {
+                    outputDiv.classList.add('active');
+                    showSuccess('generator', translations[currentLanguage]['msg-success']);
+                };
+                qrImage.onerror = () => {
+                    showError('generator', 'Error generating QR code');
+                };
+            } catch (error) {
+                showError('generator', 'Error: ' + error.message);
+            }
+        }
+
+        // Download QR Code
+        document.getElementById('download-qr').addEventListener('click', () => {
+            const qrImage = document.getElementById('generated-qr');
+            if (!qrImage.src) {
+                showError('generator', 'No QR code to download');
+                return;
+            }
+            
+            const link = document.createElement('a');
+            link.href = qrImage.src;
+            link.download = 'qrcode.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showSuccess('generator', translations[currentLanguage]['success-download']);
+        });
+
+        // Copy QR Code to Clipboard
+        document.getElementById('copy-qr').addEventListener('click', async () => {
+            const qrImage = document.getElementById('generated-qr');
+            if (!qrImage.src) {
+                showError('generator', 'No QR code to copy');
+                return;
+            }
+            
+            try {
+                const response = await fetch(qrImage.src);
+                const blob = await response.blob();
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                showSuccess('generator', translations[currentLanguage]['success-copy']);
+            } catch (error) {
+                // Fallback: try copying the data URL
+                await navigator.clipboard.writeText(qrImage.src);
+                showSuccess('generator', translations[currentLanguage]['success-copy']);
+            }
+        });
+
+        // Clear buttons
+        document.getElementById('clear-text-input').addEventListener('click', () => {
+            document.getElementById('qr-text-input').value = '';
+            document.getElementById('generator-output').classList.remove('active');
+        });
+
+        document.getElementById('clear-wifi-input').addEventListener('click', () => {
+            document.getElementById('wifi-ssid').value = '';
+            document.getElementById('wifi-password').value = '';
+            document.getElementById('generator-output').classList.remove('active');
+        });
+
+        document.getElementById('clear-contact-input').addEventListener('click', () => {
+            document.getElementById('contact-name').value = '';
+            document.getElementById('contact-phone').value = '';
+            document.getElementById('contact-email').value = '';
+            document.getElementById('contact-website').value = '';
+            document.getElementById('generator-output').classList.remove('active');
+        });
+
+        // ==================== QR Decoder - Camera ====================
+        let cameraStream = null;
+        let cameraScanActive = false;
+
+        document.getElementById('start-camera').addEventListener('click', async () => {
+            try {
+                const video = document.getElementById('camera');
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+                });
+                
+                video.srcObject = cameraStream;
+                video.style.display = 'block';
+                
+                document.getElementById('start-camera').style.display = 'none';
+                document.getElementById('stop-camera').style.display = 'block';
+                
+                cameraScanActive = true;
+                scanQRCodeFromCamera();
+            } catch (error) {
+                showError('decoder', translations[currentLanguage]['error-camera']);
+            }
+        });
+
+        document.getElementById('stop-camera').addEventListener('click', () => {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
+            
+            const video = document.getElementById('camera');
+            video.style.display = 'none';
+            
+            document.getElementById('start-camera').style.display = 'block';
+            document.getElementById('stop-camera').style.display = 'none';
+            
+            cameraScanActive = false;
+        });
+
+        function scanQRCodeFromCamera() {
+            const video = document.getElementById('camera');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            function scan() {
+                if (!cameraScanActive) return;
+                
+                if (video.videoWidth && video.videoHeight) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    ctx.drawImage(video, 0, 0);
+                    
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, canvas.width, canvas.height);
+                    
+                    if (code) {
+                        displayDecodedResult(code.data);
+                        cameraScanActive = false;
+                        document.getElementById('stop-camera').click();
+                        return;
+                    }
+                }
+                
+                requestAnimationFrame(scan);
+            }
+            
+            scan();
+        }
+
+        // ==================== QR Decoder - File Upload ====================
+        document.getElementById('decode-file').addEventListener('click', async () => {
+            const fileInput = document.getElementById('qr-file-input');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showError('decoder', 'Please select an image');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    
+                    try {
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const code = jsQR(imageData.data, canvas.width, canvas.height);
+                        
+                        if (code) {
+                            displayDecodedResult(code.data);
+                        } else {
+                            showError('decoder', translations[currentLanguage]['error-decode']);
+                        }
+                    } catch (error) {
+                        showError('decoder', translations[currentLanguage]['error-decode']);
+                    }
+                };
+                img.src = e.target.result;
+            };
+            
+            reader.readAsDataURL(file);
+        });
+
+        // ==================== Decode Result Display ====================
+        function displayDecodedResult(data) {
+            const outputDiv = document.getElementById('decoder-output');
+            const contentDiv = document.getElementById('decoded-content');
+            
+            let displayContent = '';
+            let resultType = 'text';
+            
+            // Detect Wi-Fi QR
+            if (data.startsWith('WIFI:')) {
+                resultType = 'wifi';
+                displayContent = parseWiFiQR(data);
+            }
+            // Detect vCard
+            else if (data.startsWith('BEGIN:VCARD')) {
+                resultType = 'contact';
+                displayContent = parseVCard(data);
+            }
+            // Detect URL
+            else if (data.startsWith('http://') || data.startsWith('https://')) {
+                resultType = 'url';
+                displayContent = `<div class="decoded-text url">
+                    <strong>${translations[currentLanguage]['label-input']}</strong><br>
+                    <a href="${data}" target="_blank" style="word-break: break-all;">${data}</a>
+                </div>`;
+            }
+            // Plain text
+            else {
+                displayContent = `<div class="decoded-text">
+                    <strong>${translations[currentLanguage]['label-input']}</strong><br>
+                    ${data}
+                </div>`;
+            }
+            
+            contentDiv.innerHTML = displayContent;
+            outputDiv.classList.add('active');
+            
+            // Store decoded data for copying
+            contentDiv.dataset.rawData = data;
+        }
+
+        function parseWiFiQR(wifiString) {
+            const details = {};
+            const regex = /([TSH]):([^;]+)/g;
+            let match;
+            
+            while ((match = regex.exec(wifiString)) !== null) {
+                switch (match[1]) {
+                    case 'S': details.ssid = match[2]; break;
+                    case 'P': details.password = match[2]; break;
+                    case 'T': details.type = match[2]; break;
+                    case 'H': details.hidden = match[2] === 'true'; break;
+                }
+            }
+            
+            let html = `<div class="decoded-text wifi">
+                <strong>📡 ${translations[currentLanguage]['label-ssid']}</strong><br>
+                <div class="wifi-details">`;
+            
+            html += `<p><label>${translations[currentLanguage]['wifi-ssid']}:</label> <span>${details.ssid || 'N/A'}</span></p>`;
+            html += `<p><label>${translations[currentLanguage]['wifi-password']}:</label> <span>${details.password || 'Open'}</span></p>`;
+            html += `<p><label>${translations[currentLanguage]['wifi-security']}:</label> <span>${details.type || 'N/A'}</span></p>`;
+            html += `<p><label>${translations[currentLanguage]['wifi-hidden']}:</label> <span>${details.hidden ? 'Yes' : 'No'}</span></p>`;
+            
+            html += `</div></div>`;
+            
+            return html;
+        }
+
+        function parseVCard(vcardString) {
+            const lines = vcardString.split('\n');
+            const contact = {};
+            
+            lines.forEach(line => {
+                if (line.startsWith('FN:')) contact.name = line.substring(3);
+                if (line.startsWith('TEL:')) contact.phone = line.substring(4);
+                if (line.startsWith('EMAIL:')) contact.email = line.substring(6);
+                if (line.startsWith('URL:')) contact.website = line.substring(4);
+            });
+            
+            let html = `<div class="decoded-text">
+                <strong>📇 ${translations[currentLanguage]['label-contact']}</strong><br>
+                <div class="wifi-details">`;
+            
+            if (contact.name) html += `<p><label>${translations[currentLanguage]['contact-name']}:</label> <span>${contact.name}</span></p>`;
+            if (contact.phone) html += `<p><label>${translations[currentLanguage]['contact-phone']}:</label> <span><a href="tel:${contact.phone}">${contact.phone}</a></span></p>`;
+            if (contact.email) html += `<p><label>${translations[currentLanguage]['contact-email']}:</label> <span><a href="mailto:${contact.email}">${contact.email}</a></span></p>`;
+            if (contact.website) html += `<p><label>${translations[currentLanguage]['contact-website']}:</label> <span><a href="${contact.website}" target="_blank">${contact.website}</a></span></p>`;
+            
+            html += `</div></div>`;
+            
+            return html;
+        }
+
+        // Copy decoded content
+        document.getElementById('copy-decoded').addEventListener('click', async () => {
+            const contentDiv = document.getElementById('decoded-content');
+            const rawData = contentDiv.dataset.rawData;
+            
+            if (!rawData) {
+                showError('decoder', 'No data to copy');
+                return;
+            }
+            
+            try {
+                await navigator.clipboard.writeText(rawData);
+                showSuccess('decoder', translations[currentLanguage]['success-copy']);
+            } catch (error) {
+                showError('decoder', 'Failed to copy');
+            }
+        });
+
+        // Clear decoder
+        document.getElementById('clear-decoder').addEventListener('click', () => {
+            document.getElementById('qr-file-input').value = '';
+            document.getElementById('decoder-output').classList.remove('active');
+            document.getElementById('decoded-content').innerHTML = '';
+        });
+
+        // ==================== Utility Functions ====================
+        function showError(section, message) {
+            const errorEl = document.getElementById(section + '-error') || 
+                           document.querySelector(`.${section} .error-message`);
+            if (errorEl) {
+                errorEl.textContent = message;
+                errorEl.classList.add('show');
+                setTimeout(() => errorEl.classList.remove('show'), 5000);
+            } else {
+                alert(message);
+            }
+        }
+
+        function showSuccess(section, message) {
+            const successEl = document.getElementById(section + '-success') || 
+                             document.querySelector(`.${section} .success-message`);
+            if (successEl) {
+                successEl.textContent = message;
+                successEl.classList.add('show');
+                setTimeout(() => successEl.classList.remove('show'), 3000);
+            }
+        }
+
+        // Initialize
+        setLanguage('en');
+    </script>
+</body>
+</html>
