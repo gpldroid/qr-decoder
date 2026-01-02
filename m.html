@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>QR Tools | أدوات QR السريعة</title>
+<meta name="description" content="منصة أدوات QR سريعة لفك تشفير وإنشاء رموز QR وWi-Fi مباشرة من المتصفح.">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- SEO Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "QR Tools",
+  "applicationCategory": "UtilityApplication",
+  "operatingSystem": "All",
+  "offers": { "@type": "Offer", "price": "0" }
+}
+</script>
+
+<link rel="stylesheet" href="assets/main.css">
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+body {
+  margin: 0;
+  font-family: system-ui, Tahoma;
+  background: #f5f7fa;
+}
+
+.navbar {
+  background: #111;
+  color: #fff;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.navbar button {
+  margin: 0 3px;
+  padding: 5px 10px;
+}
+
+.section {
+  display: none;
+  max-width: 600px;
+  margin: auto;
+  padding: 20px;
+}
+
+.section.active {
+  display: block;
+}
+
+#wifiBox {
+  display: none;
+}
+
+pre {
+  background: #fff;
+  padding: 10px;
+}
+
+.footer {
+  text-align: center;
+  padding: 15px;
+  font-size: 13px;
+}
+
+  
+</style>
+</head>
+
+<body>
+
+<!-- 🔹 NAVBAR -->
+<nav class="navbar">
+  <strong>QR Tools</strong>
+  <div>
+    <button onclick="showSection('home')">الرئيسية</button>
+    <button onclick="showSection('decoder')">QR Decoder</button>
+    <button onclick="showSection('generator')">QR Generator</button>
+    <button onclick="toggleLang()">AR / EN</button>
+  </div>
+</nav>
+
+<!-- 🔹 HOME -->
+<section id="home" class="section active">
+  <h1>أدوات QR السريعة</h1>
+  <p>منصة خفيفة لفك تشفير وإنشاء رموز QR بدون رفع أي بيانات.</p>
+</section>
+
+<!-- 🔹 DECODER -->
+<section id="decoder" class="section">
+  <h2>QR Decoder</h2>
+  <div id="reader"></div>
+  <input type="file" id="qr-file" accept="image/*">
+  <pre id="decodeResult">—</pre>
+</section>
+
+<!-- 🔹 GENERATOR -->
+<section id="generator" class="section">
+  <h2>QR Generator</h2>
+
+  <select id="qrType">
+    <option value="text">نص / Text</option>
+    <option value="url">رابط / URL</option>
+    <option value="wifi">Wi-Fi</option>
+  </select>
+
+  <input id="qrInput" placeholder="أدخل النص أو الرابط">
+
+  <div id="wifiBox">
+    <input id="ssid" placeholder="SSID">
+    <input id="pass" placeholder="Password">
+  </div>
+
+  <button onclick="generateQR()">إنشاء QR</button>
+  <div id="qrcode"></div>
+</section>
+
+<footer class="footer">
+  <small>© QR Tools — يعمل 100% على جهازك</small>
+</footer>
+
+<script src="assets/main.js"></script>
+<script>
+  /* NAVIGATION */
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* QR DECODER */
+const output = document.getElementById("decodeResult");
+const qr = new Html5Qrcode("reader");
+
+qr.start(
+  { facingMode: "environment" },
+  { fps: 10, qrbox: 250 },
+  text => {
+    output.textContent = parseWifi(text);
+    qr.stop();
+  }
+);
+
+document.getElementById("qr-file").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const scanner = new Html5Qrcode("reader");
+  scanner.scanFile(file, true)
+    .then(text => output.textContent = parseWifi(text))
+    .catch(() => output.textContent = "❌ لم يتم التعرف على الرمز");
+});
+
+function parseWifi(text) {
+  if (text.startsWith("WIFI:")) {
+    const data = {};
+    text.replace("WIFI:", "").split(";").forEach(i => {
+      const [k, v] = i.split(":");
+      data[k] = v;
+    });
+    return `SSID: ${data.S}\nSecurity: ${data.T}\nPassword: ${data.P}`;
+  }
+  return text;
+}
+
+/* QR GENERATOR */
+const type = document.getElementById("qrType");
+const wifiBox = document.getElementById("wifiBox");
+const qrBox = document.getElementById("qrcode");
+
+type.onchange = () => wifiBox.style.display = type.value === "wifi" ? "block" : "none";
+
+function generateQR() {
+  qrBox.innerHTML = "";
+  let text = document.getElementById("qrInput").value;
+
+  if (type.value === "wifi") {
+    text = `WIFI:T:WPA;S:${ssid.value};P:${pass.value};;`;
+  }
+
+  new QRCode(qrBox, { text, width: 200, height: 200 });
+}
+
+/* LANGUAGE */
+let lang = "ar";
+function toggleLang() {
+  lang = lang === "ar" ? "en" : "ar";
+  document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+  document.documentElement.lang = lang;
+}
+
+</script>
+</body>
+</html>
