@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>QR Pro Tools | أدوات QR الشاملة</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --border: #cbd5e1;
+        }
+
+        body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); padding-bottom: 50px; }
+        
+        .navbar { background: #1e293b; color: #fff; padding: 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        .nav-links button { background: transparent; border: 1px solid transparent; color: #ccc; padding: 8px 12px; cursor: pointer; border-radius: 4px; transition: 0.2s; font-size: 0.9rem; }
+        .nav-links button:hover, .nav-links button.active-nav { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2); }
+
+        .container { max-width: 600px; margin: 2rem auto; padding: 0 1rem; }
+        .section { display: none; background: var(--surface); padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); animation: fadeIn 0.3s ease; }
+        .section.active { display: block; }
+
+        label { font-size: 0.9rem; font-weight: bold; color: #64748b; margin-top: 10px; display: block; }
+        input, select, textarea { width: 100%; padding: 10px; margin: 5px 0 15px 0; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; background: #fff; }
+        textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        button.action-btn { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.2s; }
+        button.action-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        button.outline-btn { background: transparent; border: 2px solid var(--primary); color: var(--primary); margin-top: 10px; width: 100%; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button.stop-btn { background: #ef4444; }
+
+        .color-group { display: flex; align-items: center; justify-content: space-between; background: #f1f5f9; padding: 10px; border-radius: 8px; margin-bottom: 15px; }
+        .color-input { width: 50px; height: 40px; padding: 0; border: none; cursor: pointer; background: none; }
+
+        #reader { width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 1rem; background: #000; min-height: 250px; }
+        #qrcode { margin-top: 20px; display: flex; justify-content: center; padding: 20px; border: 1px dashed var(--border); border-radius: 8px; }
+        #qrcode img { max-width: 100%; height: auto; } /* Ensure displayed image fits */
+        #decodeResult { background: #f1f5f9; padding: 15px; border-radius: 6px; white-space: pre-wrap; word-break: break-all; min-height: 50px; border-left: 4px solid var(--primary); }
+        
+        .hidden { display: none; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .footer { text-align: center; margin-top: 2rem; color: #64748b; font-size: 0.85rem; }
+        
+        .quality-controls { background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 3px solid var(--primary); }
+        .size-control { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+        .size-control input { flex: 1; margin: 0; }
+        .size-control span { min-width: 60px; font-size: 0.9rem; }
+        
+        /* Preview container */
+        #previewContainer { display: none; margin-top: 20px; text-align: center; }
+        #previewCanvas { border: 1px solid #ddd; border-radius: 8px; max-width: 100%; }
+    </style>
+</head>
+
+<body>
+
+<nav class="navbar">
+    <strong>QR Pro</strong>
+    <div class="nav-links">
+        <button onclick="nav('home')" class="active-nav" data-i18n="nav_home">الرئيسية</button>
+        <button onclick="nav('decoder')" data-i18n="nav_decode">فحص</button>
+        <button onclick="nav('generator')" data-i18n="nav_generate">إنشاء</button>
+        <button onclick="toggleLang()">EN/AR</button>
+    </div>
+</nav>
+
+<div class="container">
+    <section id="home" class="section active">
+        <h1 data-i18n="home_head">أدوات QR الشاملة</h1>
+        <p data-i18n="home_desc">منصة متكاملة لإنشاء رموز للروابط، الواي فاي، جهات الاتصال، والمزيد.</p>
+        <br>
+        <button class="action-btn" onclick="nav('generator')" data-i18n="btn_start_gen">ابدأ الإنشاء</button>
+    </section>
+
+    <section id="decoder" class="section">
+        <h2 data-i18n="nav_decode">QR Decoder</h2>
+        <div id="reader"></div>
+        <button id="camBtn" class="action-btn" onclick="toggleCamera()" data-i18n="btn_start_cam">تشغيل الكاميرا</button>
+        
+        <p style="text-align: center; margin: 15px 0; color:#aaa" data-i18n="or_file">— أو اختر صورة —</p>
+        <input type="file" id="qr-file" accept="image/*">
+
+        <h3 data-i18n="result">النتيجة:</h3>
+        <pre id="decodeResult">...</pre>
+    </section>
+
+    <section id="generator" class="section">
+        <h2 data-i18n="nav_generate">QR Generator</h2>
+
+        <label data-i18n="type_label">نوع الرمز:</label>
+        <select id="qrType" onchange="updateGenUI()">
+            <option value="url" data-i18n="opt_url">رابط / URL</option>
+            <option value="text" data-i18n="opt_text">نص / Text</option>
+            <option value="wifi">Wi-Fi</option>
+            <option value="vcard" data-i18n="opt_vcard">جهة اتصال (VCard)</option>
+            <option value="whatsapp" data-i18n="opt_wa">واتساب (WhatsApp)</option>
+            <option value="email" data-i18n="opt_email">بريد إلكتروني (Email)</option>
+        </select>
+
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+        <div id="simpleBox">
+            <input id="qrInput" placeholder="https://example.com">
+        </div>
+
+        <div id="wifiBox" class="hidden">
+            <input id="ssid" placeholder="SSID (Network Name)">
+            <div class="grid-2">
+                <input id="pass" placeholder="Password" type="password">
+                <select id="encryption">
+                    <option value="WPA">WPA/WPA2</option>
+                    <option value="WEP">WEP</option>
+                    <option value="nopass">Open</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="vcardBox" class="hidden">
+            <div class="grid-2">
+                <input id="vcName" placeholder="Name" data-ph="ph_name">
+                <input id="vcOrg" placeholder="Company" data-ph="ph_company">
+            </div>
+            <div class="grid-2">
+                <input id="vcPhone" placeholder="Phone" type="tel" data-ph="ph_phone">
+                <input id="vcEmail" placeholder="Email" type="email" data-ph="ph_email">
+            </div>
+            <input id="vcSite" placeholder="Website" data-ph="ph_site">
+        </div>
+
+        <div id="whatsappBox" class="hidden">
+            <label data-i18n="lbl_wa_num">رقم الهاتف (مع رمز الدولة):</label>
+            <input id="waPhone" placeholder="966500000000" type="number">
+            <label data-i18n="lbl_wa_msg">الرسالة:</label>
+            <input id="waMsg" placeholder="Hello!">
+        </div>
+
+        <div id="emailBox" class="hidden">
+            <input id="emAddress" placeholder="to@example.com" type="email">
+            <input id="emSubject" placeholder="Subject" data-ph="ph_subject">
+            <textarea id="emBody" placeholder="Message content..." data-ph="ph_msg"></textarea>
+        </div>
+
+        <label data-i18n="lbl_colors">تخصيص الألوان:</label>
+        <div class="color-group">
+            <span data-i18n="col_fg">لون الرمز:</span>
+            <input type="color" id="colorDark" value="#000000" class="color-input">
+            <span style="width:20px"></span>
+            <span data-i18n="col_bg">الخلفية:</span>
+            <input type="color" id="colorLight" value="#ffffff" class="color-input">
+        </div>
+
+        <div class="quality-controls">
+            <label data-i18n="lbl_quality">إعدادات الجودة:</label>
+            <div class="size-control">
+                <span data-i18n="lbl_size">الحجم:</span>
+                <input type="range" id="sizeSlider" min="200" max="2000" value="800" step="10">
+                <span id="sizeValue">800px</span>
+            </div>
+            <div class="size-control">
+                <span data-i18n="lbl_quality_val">الجودة:</span>
+                <input type="range" id="qualitySlider" min="0.1" max="1" value="1" step="0.1">
+                <span id="qualityValue">1.0</span>
+            </div>
+        </div>
+
+        <button class="action-btn" onclick="generateQR()" data-i18n="btn_create">إنشاء الرمز</button>
+        
+        <div id="qrcode"></div>
+        
+        <div id="previewContainer">
+            <h3 data-i18n="lbl_preview">معاينة التحميل:</h3>
+            <canvas id="previewCanvas"></canvas>
+            <p style="font-size: 0.9rem; color: #666; margin-top: 5px;" id="previewInfo"></p>
+        </div>
+        
+        <button id="downloadBtn" class="outline-btn hidden" onclick="downloadQR()" data-i18n="btn_download">⬇ تحميل الصورة</button>
+    </section>
+</div>
+
+<footer class="footer">
+    <small>© QR Pro Tools 2024</small>
+</footer>
+
+<script>
+    /* --- TRANSLATIONS --- */
+    const translations = {
+        ar: {
+            nav_home: "الرئيسية", nav_decode: "فحص", nav_generate: "إنشاء",
+            home_head: "أدوات QR الشاملة", home_desc: "منصة متكاملة لإنشاء رموز للروابط، الواي فاي، جهات الاتصال، والمزيد.",
+            btn_start_gen: "ابدأ الإنشاء", btn_start_cam: "تشغيل الكاميرا", btn_stop_cam: "إيقاف الكاميرا",
+            or_file: "— أو اختر صورة —", result: "النتيجة:", type_label: "نوع الرمز:",
+            opt_url: "رابط / URL", opt_text: "نص / Text", opt_vcard: "جهة اتصال (VCard)", opt_wa: "واتساب (WhatsApp)", opt_email: "بريد إلكتروني (Email)",
+            lbl_wa_num: "رقم الهاتف (مع رمز الدولة):", lbl_wa_msg: "الرسالة:",
+            lbl_colors: "تخصيص الألوان:", col_fg: "لون الرمز:", col_bg: "الخلفية:",
+            lbl_quality: "إعدادات الجودة:", lbl_size: "الحجم:", lbl_quality_val: "الجودة:",
+            lbl_preview: "معاينة التحميل:",
+            btn_create: "إنشاء الرمز", btn_download: "⬇ تحميل الصورة PNG",
+            ph_name: "الاسم", ph_company: "الشركة", ph_phone: "الهاتف", ph_email: "البريد", ph_site: "الموقع",
+            ph_subject: "عنوان الرسالة", ph_msg: "نص الرسالة"
+        },
+        en: {
+            nav_home: "Home", nav_decode: "Scanner", nav_generate: "Generator",
+            home_head: "QR Pro Tools", home_desc: "Create and scan QR codes for Contacts, WiFi, URLs and more.",
+            btn_start_gen: "Start Now", btn_start_cam: "Start Camera", btn_stop_cam: "Stop Camera",
+            or_file: "— Or upload image —", result: "Result:", type_label: "QR Type:",
+            opt_url: "URL", opt_text: "Text", opt_vcard: "Contact (VCard)", opt_wa: "WhatsApp", opt_email: "Email",
+            lbl_wa_num: "Phone Number (Country code):", lbl_wa_msg: "Message:",
+            lbl_colors: "Customize Colors:", col_fg: "Foreground:", col_bg: "Background:",
+            lbl_quality: "Quality Settings:", lbl_size: "Size:", lbl_quality_val: "Quality:",
+            lbl_preview: "Download Preview:",
+            btn_create: "Generate QR", btn_download: "⬇ Download PNG",
+            ph_name: "Name", ph_company: "Company", ph_phone: "Phone", ph_email: "Email", ph_site: "Website",
+            ph_subject: "Subject", ph_msg: "Message Content"
+        }
+    };
+
+    let currentLang = "ar";
+    let currentQR = null;
+    let qrDataUrl = null;
+
+    /* --- NAVIGATION & GENERAL --- */
+    function nav(id) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active-nav'));
+        event.target.classList.add('active-nav');
+        if (id !== 'decoder' && html5QrCode && html5QrCode.isScanning) stopCamera();
+    }
+
+    /* --- QUALITY CONTROLS --- */
+    document.getElementById('sizeSlider').addEventListener('input', function() {
+        document.getElementById('sizeValue').textContent = this.value + 'px';
+        if (qrDataUrl) {
+            createPreview();
+        }
+    });
+
+    document.getElementById('qualitySlider').addEventListener('input', function() {
+        document.getElementById('qualityValue').textContent = parseFloat(this.value).toFixed(1);
+        if (qrDataUrl) {
+            createPreview();
+        }
+    });
+
+    /* --- GENERATOR LOGIC --- */
+    function updateGenUI() {
+        const type = document.getElementById("qrType").value;
+        const boxes = ["simpleBox", "wifiBox", "vcardBox", "whatsappBox", "emailBox"];
+        
+        boxes.forEach(id => document.getElementById(id).classList.add("hidden"));
+
+        if (type === "wifi") document.getElementById("wifiBox").classList.remove("hidden");
+        else if (type === "vcard") document.getElementById("vcardBox").classList.remove("hidden");
+        else if (type === "whatsapp") document.getElementById("whatsappBox").classList.remove("hidden");
+        else if (type === "email") document.getElementById("emailBox").classList.remove("hidden");
+        else document.getElementById("simpleBox").classList.remove("hidden");
+
+        document.getElementById("downloadBtn").classList.add("hidden");
+        document.getElementById("previewContainer").style.display = "none";
+        document.getElementById("qrcode").innerHTML = "";
+        currentQR = null;
+        qrDataUrl = null;
+    }
+
+    function generateQR() {
+        const qrBox = document.getElementById("qrcode");
+        qrBox.innerHTML = "";
+        const type = document.getElementById("qrType").value;
+        const colorDark = document.getElementById("colorDark").value;
+        const colorLight = document.getElementById("colorLight").value;
+        let data = "";
+
+        // Collect Data
+        if (type === "wifi") {
+            const ssid = document.getElementById("ssid").value;
+            const pass = document.getElementById("pass").value;
+            const enc = document.getElementById("encryption").value;
+            data = `WIFI:T:${enc};S:${ssid};P:${pass};;`;
+        } 
+        else if (type === "vcard") {
+            const n = document.getElementById("vcName").value;
+            const org = document.getElementById("vcOrg").value;
+            const tel = document.getElementById("vcPhone").value;
+            const mail = document.getElementById("vcEmail").value;
+            const url = document.getElementById("vcSite").value;
+            data = `BEGIN:VCARD\nVERSION:3.0\nFN:${n}\nORG:${org}\nTEL:${tel}\nEMAIL:${mail}\nURL:${url}\nEND:VCARD`;
+        }
+        else if (type === "whatsapp") {
+            const num = document.getElementById("waPhone").value;
+            const msg = document.getElementById("waMsg").value;
+            data = `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+        }
+        else if (type === "email") {
+            const to = document.getElementById("emAddress").value;
+            const sub = document.getElementById("emSubject").value;
+            const body = document.getElementById("emBody").value;
+            data = `mailto:${to}?subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(body)}`;
+        }
+        else {
+            data = document.getElementById("qrInput").value;
+        }
+
+        if (!data || data.length < 1) return alert("Please enter data");
+
+        // 1. إنشاء حاوية مؤقتة (مخفية خارج الشاشة بدلاً من display:none)
+        // هذا هو التعديل الأساسي لإصلاح مشكلة الصورة البيضاء
+        const tempDiv = document.createElement('div');
+        tempDiv.style.position = 'absolute';
+        tempDiv.style.left = '-9999px';
+        tempDiv.style.top = '-9999px';
+        document.body.appendChild(tempDiv);
+        
+        // 2. توليد الرمز
+        // سنقوم بتوليد الرمز بحجم كبير نسبياً لضمان الجودة
+        const baseSize = 512; 
+
+        currentQR = new QRCode(tempDiv, {
+            text: data, 
+            width: baseSize, 
+            height: baseSize,
+            colorDark: colorDark, 
+            colorLight: colorLight,
+            correctLevel: QRCode.CorrectLevel.H // جودة تصحيح خطأ عالية
+        });
+        
+        // 3. الانتظار قليلاً واستخراج الصورة
+        setTimeout(() => {
+            // مكتبة qrcodejs تنشئ canvas أولاً
+            const canvas = tempDiv.querySelector('canvas');
+            
+            if (canvas) {
+                // رسم الـ Canvas في الحاوية الظاهرة للمستخدم
+                const displayImg = document.createElement("img");
+                displayImg.src = canvas.toDataURL("image/png");
+                qrBox.appendChild(displayImg);
+                
+                // حفظ البيانات للمعاينة والتحميل (سنقوم بتحجيمها لاحقاً في createPreview)
+                // نستخدم الـ Canvas الأصلي كمصدر عالي الجودة
+                const highResCanvas = document.createElement('canvas');
+                // نأخذ الحجم المطلوب من السلايدر، أو نستخدم حجم كبير افتراضي
+                const targetSize = 1000; 
+                highResCanvas.width = targetSize;
+                highResCanvas.height = targetSize;
+                const ctx = highResCanvas.getContext('2d');
+                
+                // خلفية
+                ctx.fillStyle = colorLight;
+                ctx.fillRect(0, 0, targetSize, targetSize);
+                
+                // تعطيل تنعيم الصورة عند التكبير للحفاظ على حدة البكسلات (اختياري)
+                ctx.imageSmoothingEnabled = false;
+
+                // رسم الكود
+                ctx.drawImage(canvas, 0, 0, targetSize, targetSize);
+                
+                qrDataUrl = highResCanvas.toDataURL('image/png');
+                
+                createPreview();
+                document.getElementById("downloadBtn").classList.remove("hidden");
+
+            } else {
+                // محاولة احتياطية في حال لم يتم العثور على canvas (للمتصفحات القديمة جداً)
+                const img = tempDiv.querySelector('img');
+                if(img) {
+                    qrBox.appendChild(img.cloneNode(true));
+                    qrDataUrl = img.src;
+                    createPreview();
+                    document.getElementById("downloadBtn").classList.remove("hidden");
+                } else {
+                    alert("Error generating QR code.");
+                }
+            }
+            
+            // تنظيف
+            document.body.removeChild(tempDiv);
+        }, 100);
+    }
+
+    function createPreview() {
+        if (!qrDataUrl) return;
+        
+        const previewCanvas = document.getElementById('previewCanvas');
+        const previewContainer = document.getElementById('previewContainer');
+        const previewInfo = document.getElementById('previewInfo');
+        
+        const size = parseInt(document.getElementById("sizeSlider").value);
+        const quality = parseFloat(document.getElementById("qualitySlider").value);
+        
+        previewCanvas.width = size;
+        previewCanvas.height = size;
+        const ctx = previewCanvas.getContext('2d');
+        
+        const img = new Image();
+        img.onload = function() {
+            // خلفية
+            ctx.fillStyle = document.getElementById("colorLight").value;
+            ctx.fillRect(0, 0, size, size);
+            
+            // رسم
+            ctx.drawImage(img, 0, 0, size, size);
+            
+            previewContainer.style.display = "block";
+            previewInfo.textContent = `الأبعاد النهائية: ${size}×${size}px | الجودة: ${quality * 100}%`;
+        };
+        img.src = qrDataUrl;
+    }
+
+    function downloadQR() {
+        if (!qrDataUrl) return alert("No QR code generated yet!");
+        
+        const previewCanvas = document.getElementById('previewCanvas');
+        if (!previewCanvas) return;
+        
+        const quality = parseFloat(document.getElementById("qualitySlider").value);
+        
+        const link = document.createElement("a");
+        link.download = `qrcode-${Date.now()}.png`;
+        // استخدام toDataURL مع معامل الجودة (يعمل بشكل أفضل مع jpeg/webp، ولكن png لا يفقد الجودة عادة)
+        link.href = previewCanvas.toDataURL("image/png", quality);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    /* --- DECODER LOGIC --- */
+    let html5QrCode = null;
+    const resultBox = document.getElementById("decodeResult");
+
+    async function toggleCamera() {
+        if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+        if (html5QrCode.isScanning) stopCamera();
+        else startCamera();
+    }
+
+    function startCamera() {
+        const camBtn = document.getElementById("camBtn");
+        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
+            (text) => { resultBox.textContent = text; stopCamera(); }
+        ).then(() => {
+            html5QrCode.isScanning = true;
+            camBtn.textContent = translations[currentLang].btn_stop_cam;
+            camBtn.classList.add("stop-btn");
+        });
+    }
+
+    function stopCamera() {
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+                html5QrCode.isScanning = false;
+                const camBtn = document.getElementById("camBtn");
+                camBtn.textContent = translations[currentLang].btn_start_cam;
+                camBtn.classList.remove("stop-btn");
+            }).catch(e => console.log(e));
+        }
+    }
+
+    document.getElementById("qr-file").addEventListener("change", e => {
+        if (!e.target.files.length) return;
+        const fileScanner = new Html5Qrcode("reader");
+        fileScanner.scanFile(e.target.files[0], true)
+            .then(txt => resultBox.textContent = txt)
+            .catch(err => resultBox.textContent = "Error scanning file.");
+    });
+
+    /* --- LANGUAGE --- */
+    function toggleLang() {
+        currentLang = currentLang === "ar" ? "en" : "ar";
+        document.documentElement.lang = currentLang;
+        document.documentElement.dir = currentLang === "ar" ? "rtl" : "ltr";
+
+        document.querySelectorAll("[data-i18n]").forEach(el => {
+            const k = el.getAttribute("data-i18n");
+            if (translations[currentLang][k]) el.innerText = translations[currentLang][k];
+        });
+        document.querySelectorAll("[data-ph]").forEach(el => {
+            const k = el.getAttribute("data-ph");
+            if (translations[currentLang][k]) el.placeholder = translations[currentLang][k];
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        updateGenUI();
+    });
+</script>
+</body>
+</html>
