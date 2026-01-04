@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>QR & Barcode Pro | أدوات الباركود الشاملة</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #059669;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --border: #cbd5e1;
+        }
+
+        body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); padding-bottom: 50px; }
+        
+        .navbar { background: #1e293b; color: #fff; padding: 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        .nav-links button { background: transparent; border: 1px solid transparent; color: #ccc; padding: 8px 12px; cursor: pointer; border-radius: 4px; transition: 0.2s; font-size: 0.9rem; }
+        .nav-links button:hover, .nav-links button.active-nav { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2); }
+
+        .container { max-width: 600px; margin: 2rem auto; padding: 0 1rem; }
+        .section { display: none; background: var(--surface); padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); animation: fadeIn 0.3s ease; }
+        .section.active { display: block; }
+
+        label { font-size: 0.9rem; font-weight: bold; color: #64748b; margin-top: 10px; display: block; }
+        input, select, textarea { width: 100%; padding: 10px; margin: 5px 0 15px 0; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; background: #fff; }
+        
+        button.action-btn { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.2s; }
+        button.search-btn { background: var(--success); }
+        button.stop-btn { background: #ef4444; }
+
+        #reader { width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 1rem; background: #000; }
+        #decodeResult { background: #f1f5f9; padding: 15px; border-radius: 6px; white-space: pre-wrap; word-break: break-all; min-height: 50px; border-left: 4px solid var(--primary); }
+        
+        .hidden { display: none; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        #qrcode { margin-top: 20px; text-align: center; }
+        #qrcode img { display: inline-block; max-width: 100%; }
+        
+        .badge { background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 5px; display: inline-block; }
+    </style>
+</head>
+
+<body>
+
+<nav class="navbar">
+    <strong>QR & Barcode Pro</strong>
+    <div class="nav-links">
+        <button onclick="nav('home')" class="active-nav">الرئيسية</button>
+        <button onclick="nav('decoder')">الماسح الضوئي</button>
+        <button onclick="nav('generator')">إنشاء كود</button>
+    </div>
+</nav>
+
+<div class="container">
+    <section id="home" class="section active">
+        <h1>مرحباً بك</h1>
+        <p>استخدم هذا التطبيق لمسح باركود المنتجات أو إنشاء رموز QR مخصصة بجودة عالية.</p>
+        <button class="action-btn" onclick="nav('decoder')">ابدأ المسح الآن</button>
+    </section>
+
+    <section id="decoder" class="section">
+        <h2>ماسح الباركود والمنتجات</h2>
+        <p style="font-size: 0.85rem; color: #64748b;">وجه الكاميرا نحو الرمز (QR أو Barcode) ليتم التعرف عليه تلقائياً.</p>
+        
+        <div id="reader"></div>
+        <button id="camBtn" class="action-btn" onclick="toggleCamera()">تشغيل الكاميرا</button>
+        
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+        
+        <h3>النتيجة:</h3>
+        <div id="decodeResult">بانتظار المسح...</div>
+        <div id="productSearchArea" class="hidden">
+            <button class="action-btn search-btn" onclick="searchProduct()">🔍 البحث عن هذا المنتج في جوجل</button>
+        </div>
+    </section>
+
+    <section id="generator" class="section">
+        <h2>إنشاء QR Code</h2>
+        <label>أدخل النص أو الرابط:</label>
+        <input type="text" id="qrInput" placeholder="https://example.com">
+        <button class="action-btn" onclick="generateQR()">إنشاء الرمز</button>
+        <div id="qrcode"></div>
+    </section>
+</div>
+
+<script>
+    let html5QrCode = null;
+    let lastResult = "";
+
+    function nav(id) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        if (id !== 'decoder') stopCamera();
+    }
+
+    // --- منطق الماسح الضوئي ---
+    async function toggleCamera() {
+        if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+        
+        if (html5QrCode.isScanning) {
+            stopCamera();
+        } else {
+            startCamera();
+        }
+    }
+
+    function startCamera() {
+        const camBtn = document.getElementById("camBtn");
+        const config = { 
+            fps: 15, 
+            qrbox: { width: 300, height: 200 }, // صندوق مستطيل يناسب الباركود والـ QR
+            aspectRatio: 1.0
+        };
+
+        html5QrCode.start(
+            { facingMode: "environment" }, 
+            config,
+            (decodedText, decodedResult) => {
+                onScanSuccess(decodedText);
+            }
+        ).then(() => {
+            html5QrCode.isScanning = true;
+            camBtn.textContent = "إيقاف الكاميرا";
+            camBtn.classList.add("stop-btn");
+        }).catch(err => {
+            alert("خطأ في تشغيل الكاميرا: " + err);
+        });
+    }
+
+    function stopCamera() {
+        if (html5QrCode && html5QrCode.isScanning) {
+            html5QrCode.stop().then(() => {
+                html5QrCode.isScanning = false;
+                const camBtn = document.getElementById("camBtn");
+                camBtn.textContent = "تشغيل الكاميرا";
+                camBtn.classList.remove("stop-btn");
+            });
+        }
+    }
+
+    function onScanSuccess(text) {
+        lastResult = text;
+        const resultBox = document.getElementById("decodeResult");
+        const searchArea = document.getElementById("productSearchArea");
+        
+        // عرض النتيجة
+        resultBox.innerHTML = `<span class="badge">تم العثور على كود</span><br><strong>${text}</strong>`;
+        
+        // إظهار زر البحث عن المنتج
+        searchArea.classList.remove("hidden");
+        
+        // إيقاف الكاميرا للتوفير
+        stopCamera();
+        
+        // إذا كان الرابط يبدأ بـ http، افتحه تلقائياً؟ (اختياري)
+        if(text.startsWith("http")) {
+            if(confirm("تم اكتشاف رابط، هل تريد الذهاب إليه؟")) {
+                window.open(text, '_blank');
+            }
+        }
+    }
+
+    function searchProduct() {
+        if (!lastResult) return;
+        // البحث باستخدام كود المنتج في جوجل للتسوق
+        const url = `https://www.google.com/search?q=${encodeURIComponent(lastResult)}+product`;
+        window.open(url, '_blank');
+    }
+
+    // --- منطق المولد ---
+    function generateQR() {
+        const text = document.getElementById("qrInput").value;
+        const qrBox = document.getElementById("qrcode");
+        qrBox.innerHTML = "";
+        
+        if (!text) return alert("الرجاء إدخال نص أولاً");
+
+        new QRCode(qrBox, {
+            text: text,
+            width: 256,
+            height: 256
+        });
+    }
+</script>
+
+</body>
+</html>
