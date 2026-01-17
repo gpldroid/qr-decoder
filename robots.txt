@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# رابط ملف السايت ماب (قم بتغيير الرابط لرابط موقعك الفعلي)
+Sitemap: https://gpldroid.github.io/qr-decoder/sitemap.xml
